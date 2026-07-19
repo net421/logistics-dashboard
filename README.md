@@ -24,7 +24,7 @@ The application shows five calculated KPIs, service and cost trends, supplier
 performance, a route cost–service matrix, and two automatically generated
 operational observations.
 
-<!-- A verified screenshot is added here when screenshot.png is generated. -->
+![Logistics KPI Dashboard showing five KPIs and monthly service trends](docs/logistics-dashboard.png)
 
 ## KPI definitions
 
@@ -77,6 +77,7 @@ OTD, 90% unit fill rate, MX$10 freight per shipped unit, six-day lead time, and
 │   ├── kpis.py                  # Period filtering and KPI aggregation
 │   └── validation.py            # Input data contracts
 ├── tests/                       # Unit, validation, and AppTest smoke tests
+├── docs/logistics-dashboard.png # Verified dashboard screenshot
 ├── .github/workflows/ci.yml     # Lint and test workflow
 ├── .streamlit/config.toml       # Stable local/deployed theme
 ├── requirements.txt
