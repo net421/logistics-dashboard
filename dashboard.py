@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.data import generate_demo_data
+from src.export import prepare_order_export, serialize_order_export
 from src.kpis import (
     filter_period,
     monthly_kpis,
@@ -167,6 +168,7 @@ monthly = monthly_kpis(filtered_transactions, filtered_inventory)
 suppliers = supplier_scorecard(filtered_transactions)
 routes = route_scorecard(filtered_transactions)
 quality = quality_summary(filtered_transactions)
+order_export = prepare_order_export(filtered_transactions)
 
 current = monthly.iloc[-1]
 previous = monthly.iloc[-2] if len(monthly) > 1 else current
@@ -180,6 +182,11 @@ st.caption(
 st.info(
     "Datos transaccionales **sintéticos y deterministas**. No es información de una "
     "empresa ni un sistema en tiempo real; cada KPI se calcula desde las órdenes del escenario."
+)
+st.caption(
+    "Las tarjetas resumen el último mes del rango. Tendencias, proveedores, rutas "
+    "y exportación usan el rango completo; filtra el CSV al último mes para "
+    "conciliar una tarjeta."
 )
 
 card_columns = st.columns(5)
@@ -402,6 +409,30 @@ with insight_right:
         f"**Prioridad de transporte:** {highest_cost_route['route']} registra el mayor costo "
         f"unitario (MX${highest_cost_route['cost_unit']:.2f}). Validar tarifa, consolidación y volumen."
     )
+
+st.markdown(
+    '<div class="section-header">Detalle operativo</div>', unsafe_allow_html=True
+)
+st.write(
+    "Descarga todas las órdenes del rango seleccionado: la misma cohorte de las "
+    "tendencias y vistas de proveedores y rutas. Para conciliar una tarjeta, filtra "
+    "order_date al último mes. El archivo conserva un registro por orden y campos "
+    "derivados; los costos agregados usan flete total / unidades totales, no el "
+    "promedio de ratios por orden. La rotación usa además el hecho mensual de "
+    "inventario, que no se repite en este CSV."
+)
+st.download_button(
+    label=f"Descargar {len(order_export):,} órdenes filtradas (CSV)",
+    data=serialize_order_export(order_export),
+    file_name=f"logistics_orders_seed-{seed}_{start_month}_{end_month}.csv",
+    mime="text/csv",
+    help="CSV UTF-8 con todas las órdenes del rango seleccionado por order_date.",
+    type="primary",
+)
+st.caption(
+    "Grano: una fila por order_id · Fechas ISO YYYY-MM-DD · Costos en MXN · "
+    "Datos sintéticos y deterministas"
+)
 
 with st.expander("Definiciones y controles de calidad"):
     st.markdown(
