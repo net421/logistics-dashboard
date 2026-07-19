@@ -15,6 +15,8 @@ supplier, and route KPIs.
 - Data-contract validation for duplicate keys, missing values, impossible dates,
   negative values, over-shipments, and invalid defect quantities.
 - Reproducible business scenarios selected with a random seed.
+- Stable CSV export of the full selected order cohort used by the monthly
+  series plus supplier and route views; headline cards summarize its end month.
 - Unit tests for known KPI results plus a Streamlit application smoke test.
 - Automated linting and tests in GitHub Actions.
 
@@ -54,7 +56,32 @@ streamlit run dashboard.py
 ```
 
 Open `http://localhost:8501`, change the period or scenario seed, and verify that
-all views recalculate from the same selected order rows.
+all order-based views recalculate from the same selected rows while inventory
+turnover uses the matching monthly inventory facts.
+
+## Manager-ready operational task
+
+Use the dashboard as a short evidence trail for a common request: **identify a
+service or transportation exception and provide the supporting order rows**.
+
+1. Select a scenario seed and analysis period; the cohort uses `order_date`.
+2. Read the five headline cards as the **end-month snapshot** and use the trend,
+   supplier, and route views to analyze the full selected range.
+3. Download **filtered orders (CSV)**. The file contains every order in that
+   selected range, matching the trend, supplier, and route cohorts.
+4. To reconcile a headline card, first filter `order_date` to the end month. To
+   reconcile route unit cost, calculate `sum(freight_cost_mxn) /
+   sum(shipped_units)`; do not average the per-order unit-cost column.
+5. Audit `on_time`, `unfilled_units`, and `lead_time_days` before recommending
+   any operational action.
+
+The export has one row per `order_id`, ISO dates, MXN costs, a stable column
+order, and UTF-8 encoding. Its per-order freight ratio is useful for row-level
+inspection, while dashboard route and monthly costs use the weighted aggregate
+ratio of total freight to total shipped units. It remains synthetic evidence of
+analysis behavior, not an extract from an employer or customer system.
+Inventory turnover also uses the separate monthly inventory fact set, which is
+intentionally not duplicated across order rows in this export.
 
 ## Verify
 
@@ -65,7 +92,9 @@ python -m pytest -q -W error
 
 The tests include a hand-calculated fixture: two January orders must produce 50%
 OTD, 90% unit fill rate, MX$10 freight per shipped unit, six-day lead time, and
-6x annualized inventory turnover.
+6x annualized inventory turnover. Export tests verify that filtering, row grain,
+derived audit fields, column order, CSV serialization, and weighted route-cost
+reconciliation remain stable.
 
 ## Project structure
 
@@ -74,6 +103,7 @@ OTD, 90% unit fill rate, MX$10 freight per shipped unit, six-day lead time, and
 ├── dashboard.py                 # Streamlit presentation
 ├── src/
 │   ├── data.py                  # Deterministic order and inventory generation
+│   ├── export.py                # Order-level export contract and serialization
 │   ├── kpis.py                  # Period filtering and KPI aggregation
 │   └── validation.py            # Input data contracts
 ├── tests/                       # Unit, validation, and AppTest smoke tests
@@ -91,8 +121,36 @@ OTD, 90% unit fill rate, MX$10 freight per shipped unit, six-day lead time, and
    the monthly results.
 3. Open `tests/test_kpis.py` and defend the expected values without running the
    dashboard.
-4. Identify the lowest-OTD supplier and highest-cost route, then state which data
-   would be needed before making a real operational decision.
+4. Download the selected order cohort and reconcile one full-range chart
+   observation—or filter to the end month before reconciling a headline card.
+5. State which additional data would be needed before making a real operational
+   decision.
+
+## Change request and repair evidence
+
+The repository keeps a public engineering trail rather than presenting only a
+finished screenshot:
+
+- [Issue #3](https://github.com/net421/logistics-dashboard/issues/3) records the
+  manager-ready request for a traceable export of the filtered operational
+  cohort and its verification criteria.
+- [Issue #1](https://github.com/net421/logistics-dashboard/issues/1) records the
+  original Plotly failure, invalid period behavior, missing screenshot, and
+  unsupported claims.
+- [Pull request #2](https://github.com/net421/logistics-dashboard/pull/2) shows the
+  reviewed implementation that introduced coherent order rows, auditable KPIs,
+  validation, tests, CI, and the verified screenshot now on `main`.
+
+That issue-to-PR path demonstrates defect reproduction, scoped implementation,
+automated verification, review, and documented limitations.
+
+## Deployment status
+
+No public deployment is claimed or configured. A Streamlit-compatible host must
+use `dashboard.py` as the entry point, install `requirements.txt`, and start the
+application with `streamlit run dashboard.py --server.headless true`. This start
+command is smoke-tested locally; a public URL should be added here only after
+that exact revision is deployed and manually verified.
 
 ## Limitations
 
